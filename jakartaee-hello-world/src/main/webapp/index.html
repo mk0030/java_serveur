@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Films</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        #addFilmBtn {
+            margin-bottom: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<h1>Films</h1>
+<button id="addFilmBtn">Ajouter Film</button>
+<table id="filmsTable">
+    <thead>
+    <tr>
+
+        <th>Title</th>
+        <th>Director</th>
+        <th>Year</th>
+        <th>Genre</th>
+        <th>Description</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div id="addFilmModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Ajouter un Film</h2>
+        <form id="addFilmForm">
+            <label for="titre">Titre:</label><br>
+            <input type="text" id="titre" name="titre"><br><br>
+            <label for="realisateur">Realisateur:</label><br>
+            <input type="text" id="realisateur" name="realisateur"><br><br>
+            <label for="annee">Annee:</label><br>
+            <input type="text" id="annee" name="annee"><br><br>
+            <label for="genre">Genre:</label><br>
+            <input type="text" id="genre" name="genre"><br><br>
+            <label for="description">Description:</label><br>
+            <textarea id="description" name="description"></textarea><br><br>
+            <button type="submit">Ajouter</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function loadFilms() {
+        fetch('http://localhost:8080/videotheque-api/movies')
+            .then(response => response.text())
+            .then(data => {
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(data, 'application/xml');
+                const films = xml.getElementsByTagName('film');
+                const tbody = document.getElementById('filmsTable').querySelector('tbody');
+                tbody.innerHTML = '';
+
+                for (let film of films) {
+
+                    const title = film.getElementsByTagName('titre')[0].textContent;
+                    const director = film.getElementsByTagName('realisateur')[0].textContent;
+                    const year = film.getElementsByTagName('annee')[0].textContent;
+                    const genre = film.getElementsByTagName('genre')[0].textContent;
+                    const description = film.getElementsByTagName('description')[0].textContent;
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                            
+                            <td>${title}</td>
+                            <td>${director}</td>
+                            <td>${year}</td>
+                            <td>${genre}</td>
+                            <td>${description}</td>
+                        `;
+                    tbody.appendChild(row);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function showModal() {
+        document.getElementById('addFilmModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('addFilmModal').style.display = 'none';
+    }
+
+    document.getElementById('addFilmBtn').addEventListener('click', showModal);
+    document.getElementsByClassName('close')[0].addEventListener('click', closeModal);
+    window.addEventListener('click', function(event) {
+        if (event.target == document.getElementById('addFilmModal')) {
+            closeModal();
+        }
+    });
+
+    document.getElementById('addFilmForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+
+        fetch('http://localhost:8080/videotheque-api/movies', {
+            method: 'POST',
+            body: new URLSearchParams(formData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    closeModal();
+                    loadFilms();
+                } else {
+                    alert('Erreur lors de l\'ajout du film');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+
+    document.addEventListener('DOMContentLoaded', loadFilms);
+</script>
+</body>
+</html>
